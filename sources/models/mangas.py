@@ -2,6 +2,10 @@ class Mangas(object):
 	_items = None
 
 	@staticmethod
+	def load_items(config):		
+		Mangas._items = {source.id: source for source in config['mangas']}
+
+	@staticmethod
 	def get_items():
 		return Mangas._items.iteritems()
 
@@ -12,7 +16,7 @@ class Mangas(object):
 	@staticmethod
 	def get(id):
 		return Mangas._items[id]
-
+		
 class Manga(object):
 
 	def __init__(self, id, serie, serie_index_increment, serie_sub_index_max, source):

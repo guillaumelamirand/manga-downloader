@@ -1,6 +1,6 @@
 requests-html
-cfscrape
 mechanize
 ruamel.yaml
 sh
 image_slicer
+cfscrape

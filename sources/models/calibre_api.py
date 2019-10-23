@@ -1,27 +1,30 @@
-import sys
-import subprocess 
-import re
-import logging
 import calibre
 from calibre.ebooks.metadata.book.base import Metadata
 from calibre.srv.changes import books_added
 from collections import defaultdict
+import logging
+import os
+import re
+import sys
+import subprocess 
+
+_CHAPITER_REG_EX = 'Chapitre ([0-9]+)'
+_CHAPITER_ADDED_REG_EX = 'Added book ids: ([0-9]+)'
+_LOGGER = logging.getLogger(__name__)
 
 class CalibreApi(object):
-	_CHAPITER_REG_EX = 'Chapitre ([0-9]+)'
-	_CHAPITER_ADDED_REG_EX = 'Added book ids: ([0-9]+)'
-	read_client = None
-	library_local_path = None
-	logger = logging.getLogger()
+	
+	def __init__(self, config):
+		
+		# Init calibre client from configuration
+		self.library_path = config['calibre']['library']
+		if not os.path.exists(self.library_path + '/metadata.db'):
+			raise RuntimeError('Calibre library doesn''t exists.', library_path)
 
-	@staticmethod
-	def init(library_local_path):
-		CalibreApi.library_local_path = library_local_path
-		CalibreApi.read_client = calibre.library.db(library_local_path).new_api
+		self.api_client = calibre.library.db(self.library_path).new_api
 
-	@staticmethod
-	def add_chapiter_to_serie(serie, series_index, title, cbz_path):
-		CalibreApi.logger.debug('Adding new chapiter to serie with [serie=%s, series_index=%s, title=%s, cbz_path=%s]' % (serie, series_index, title, cbz_path))
+	def add_chapiter_to_serie(self, serie, series_index, title, cbz_path):
+		_LOGGER.debug('Adding new chapiter to serie with [serie=%s, series_index=%s, title=%s, cbz_path=%s]' % (serie, series_index, title, cbz_path))
 		if serie.tags:
 			if 'New' not in serie.tags:
 				serie.tags = serie.tags + ('Nouveau',)
@@ -30,7 +33,7 @@ class CalibreApi(object):
 		try:
 			add_output = subprocess.check_output(["calibredb", \
 				"add", \
-				"--with-library", CalibreApi.library_local_path, \
+				"--with-library", self.library_path, \
 				"--title", title, \
 				"--series", serie.name, \
 				"--series-index", str(series_index), \
@@ -39,40 +42,38 @@ class CalibreApi(object):
 				"--duplicates", \
 				cbz_path], \
 				stderr=subprocess.STDOUT)
-			CalibreApi.logger.debug(add_output)
+			_LOGGER.debug(add_output)
 
-			added_id_search = re.search(CalibreApi._CHAPITER_ADDED_REG_EX, add_output)
+			added_id_search = re.search(_CHAPITER_ADDED_REG_EX, add_output)
 			if (added_id_search):
 				added_id = added_id_search.group(1)
 				subprocess.check_output(["calibredb", \
 					"set_metadata", \
-					"--with-library", CalibreApi.library_local_path, \
+					"--with-library", self.library_path, \
 					"--field", "publisher:%s" % serie.publisher,
 					added_id], \
 					stderr=subprocess.STDOUT)
 		except subprocess.CalledProcessError as e:
-			CalibreApi.logger.exception('Unable to add chapitre to series with [serie=%s, series_index=%s, title=%s, cbz_path=%s]' % (serie.name, series_index, title, cbz_path))
+			_LOGGER.exception('Unable to add chapitre to series with [serie=%s, series_index=%s, title=%s, cbz_path=%s]' % (serie.name, series_index, title, cbz_path))
 			
-
-	@staticmethod
-	def get_serie(serie_name):		
-		CalibreApi.logger.debug('Getting serie with [serie_name=%s]' % serie_name)
-		book_ids= CalibreApi.read_client.search('series:%s' % serie_name)
+	def get_serie(self, serie_name):		
+		_LOGGER.debug('Getting serie with [serie_name=%s]' % serie_name)
+		book_ids= self.api_client.search('series:%s' % serie_name)
 		if len(book_ids) > 0:
 			last_chapiter_id = sorted(book_ids)[-1]
-			last_index =  CalibreApi._get_field(last_chapiter_id, 'series_index')		  
+			last_index =  self._get_field(last_chapiter_id, 'series_index')		  
 			try:
-				title = CalibreApi._get_field(last_chapiter_id, 'title')
-				last_chapiter = int(re.search(CalibreApi._CHAPITER_REG_EX, title).group(1))
+				title = self._get_field(last_chapiter_id, 'title')
+				last_chapiter = int(re.search(_CHAPITER_REG_EX, title).group(1))
 			except AttributeError:
 				last_chapiter = None # apply your error handling
-			authors =  CalibreApi._get_field(last_chapiter_id, 'authors')		
-			tags =  CalibreApi._get_field(last_chapiter_id, 'tags')	  
-			publisher =  CalibreApi._get_field(last_chapiter_id, 'publisher')
+			authors =  self._get_field(last_chapiter_id, 'authors')		
+			tags =  self._get_field(last_chapiter_id, 'tags')	  
+			publisher =  self._get_field(last_chapiter_id, 'publisher')
 			calibre_serie = CalibreSerie(serie_name, last_index, last_chapiter, authors, tags, publisher)
-			CalibreApi.logger.debug('Calibre serie found with [%s]' % calibre_serie)
+			_LOGGER.debug('Calibre serie found with [%s]' % calibre_serie)
 		else:			
-			CalibreApi.logger.warn("No calibre serie found for %s" % serie_name)			
+			_LOGGER.warn("No calibre serie found for %s" % serie_name)			
 			input_authors = raw_input("Authors (separator ', '): ").decode(sys.stdin.encoding)
 			if input_authors:
 				authors = tuple(input_authors.split(', '))
@@ -88,9 +89,8 @@ class CalibreApi(object):
 			calibre_serie = CalibreSerie(serie_name, 0, 0, authors, tags, publisher)
 		return calibre_serie
 
-	@staticmethod
-	def _get_field(book_id, field_name):
-		return CalibreApi.read_client.field_for(field_name, book_id)
+	def _get_field(self, book_id, field_name):
+		return self.api_client.field_for(field_name, book_id)
 
 class CalibreSerie(object):
 
@@ -109,7 +109,7 @@ class CalibreSerie(object):
 			volume_max = volume_index + sub_index_max
 			if (next_index > volume_max):
 				next_index = volume_index + 1 + index_increment
-		CalibreApi.logger.debug('Next serie index built with [index_increment=%s, sub_index_max=%s, new_index=%s]' % (index_increment, sub_index_max, next_index))
+		_LOGGER.debug('Next serie index built with [index_increment=%s, sub_index_max=%s, new_index=%s]' % (index_increment, sub_index_max, next_index))
 		return next_index
 
 	def get_chapiter_name(self, chapiter_index):

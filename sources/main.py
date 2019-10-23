@@ -1,14 +1,23 @@
 
 import logging
-from model.mangas import Mangas
-from model.sources import Sources
-from model.calibre_api import CalibreApi
+from setup import config
+from models import Sources, Mangas, CalibreApi
+from lib import calibre_api
 
-logger = logging.getLogger()
+# Load datas
+Sources.load_items(config)
+Mangas.load_items(config)
+
+# Init calibre client
+calibre_api = CalibreApi(config)
+
+# Run
+logger = logging.getLogger(__name__)
 logger.info("Browse all mangas")
+
 for manga in Mangas.get_all():
 	logger.info("  -> %s on %s" %(manga.serie, manga.source))	
-	calibre_serie = CalibreApi.get_serie(manga.serie)
+	calibre_serie = calibre_api.get_serie(manga.serie)
 	source = Sources.get(manga.source)
 	logger.info("      - Last chapiter in Calibre %s" % calibre_serie.last_chapiter )
 	available_chapiters = source.get_available_chapiters(manga.id)
@@ -26,7 +35,7 @@ for manga in Mangas.get_all():
 			logger.info("        - Adding chapiter %s to Calibre" % chapiter)
 			next_index = calibre_serie.get_next_index(manga.serie_index_increment, manga.serie_sub_index_max)
 			calibre_chapiter_name = calibre_serie.get_chapiter_name(chapiter);
-			CalibreApi.add_chapiter_to_serie(calibre_serie, next_index, calibre_chapiter_name, cbz_file)
+			calibre_api.add_chapiter_to_serie(calibre_serie, next_index, calibre_chapiter_name, cbz_file)
 		finally:
 			logger.debug("Remove cbz file '%s'" % cbz_file)	
 			if os.path.exists(cbz_file):				
