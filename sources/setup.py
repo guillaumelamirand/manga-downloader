@@ -18,7 +18,12 @@ config_yml_path = './config.yml'
 if len(sys.argv) == 2:
 	config_yml_path = sys.argv[1]
 
-with open(os.path.join(_location, config_yml_path), 'r') as configYml:
+_config_yml_full_path = os.path.join(_location, config_yml_path)
+
+if not os.path.exists(_config_yml_full_path):
+	raise RuntimeError('Configuration file doesn''t exist: %s', _config_yml_full_path)
+
+with open(_config_yml_full_path, 'r') as configYml:
 	config = _yaml.load(configYml)
 
 ##########################
