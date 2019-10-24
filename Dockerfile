@@ -3,7 +3,7 @@ FROM ubuntu:latest
 
 # Environment variables
 ENV WORK_DIR="/mangas-downloader"
-ENV CONFIG_FILE="$WORK_DIR/config.yaml"
+ENV CONFIG_FILE="$WORK_DIR/config.yml"
 ENV CRON_PERIOD="0 \*\/6 \* \* \*"
 
 # Add crontab file in the working directory
