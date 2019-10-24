@@ -1,0 +1,23 @@
+log_level: INFO
+calibre:
+  library: /library
+homeassistant:
+  base_url: http://<ip>:8123
+  token: <token>
+  mqtt_topic: <mqtt topic to notify>
+sources:
+  - !Source
+    id: <id>
+    base_url: <url>
+    manga_page: /%s
+    chapiter_page: /mangas/%s/%s
+    chapiter_regex: '/mangas/%s/([0-9]+)'
+    page_regex: 'value=\"(.*?page=[0-9]+)\"'
+    image_regex : 'src=\"(.*/display/.+)\" alt' 
+mangas:
+  - !Manga
+    id: <id>
+    serie: <calibre serie>
+    serie_index_increment: <index inside a volume>
+    serie_sub_index_max: <max index in a volume>
+    source: <source id>
