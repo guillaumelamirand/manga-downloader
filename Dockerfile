@@ -8,7 +8,7 @@ ENV CRON_PERIOD="0 \*\/6 \* \* \*"
 
 # Add crontab file in the working directory
 ADD \ 
-  cron/crontab $WORK_DIR/crontab
+  cron/crontab.template $WORK_DIR/crontab.template
 ADD \
   cron/run.sh $WORK_DIR/run.sh
 
@@ -23,7 +23,6 @@ RUN \
 # Add python files
 ADD \ 
   sources $WORK_DIR/
-
 
 # Install apt dependencies
 ENV DEBIAN_FRONTEND noninteractive
