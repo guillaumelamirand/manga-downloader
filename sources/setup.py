@@ -27,4 +27,12 @@ with open(_config_yml_full_path, 'r') as configYml:
 	config = _yaml.load(configYml)
 
 ##########################
-logging.basicConfig(level=config['log_level'], format="%(asctime)s [%(levelname)-8s] - %(module)-15s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+## Init logger
+logger = logging.getLogger()
+logger.setLevel(config['log_level'])
+formatter = logging.Formatter("%(asctime)s [%(levelname)-8s] - %(module)-15s - %(message)s", "%Y-%m-%d %H:%M:%S")
+
+## Init output handler
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
