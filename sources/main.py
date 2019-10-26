@@ -34,6 +34,7 @@ for manga in Mangas.get_all():
 		logger.info("      - New chapiters available %s" % new_chapiters)
 
 	for chapiter in new_chapiters:
+		cbz_file = None
 		try:
 			logger.info("        ---- Chapiter %s" % chapiter)
 			logger.info("           - Build")

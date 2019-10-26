@@ -19,7 +19,7 @@ class CalibreApi(object):
 		# Init calibre client from configuration
 		self.library_path = config['calibre']['library']
 		if not os.path.exists(self.library_path + '/metadata.db'):
-			raise RuntimeError('Calibre library doesn''t exists.', library_path)
+			raise RuntimeError('Calibre library doesn''t exists.', self.library_path)
 
 		self.api_client = calibre.library.db(self.library_path).new_api
 

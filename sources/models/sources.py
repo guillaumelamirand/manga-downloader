@@ -34,7 +34,7 @@ class Source(object):
 
 	_request_wrapper = cfscrape.create_scraper()
 	
-	def __init__(self, id, base_url, manga_page, chapiter_page, chapiter_regex, page_regex, image_regex): 
+	def __init__(self, id, base_url, manga_page, chapiter_page, chapiter_regex, page_regex, image_regex, pages_ignored): 
 		self.id = id
 		self.base_url = base_url
 		self.manga_page = manga_page
@@ -42,7 +42,7 @@ class Source(object):
 		self.chapiter_regex = chapiter_regex
 		self.page_regex = page_regex
 		self.image_regex = image_regex
-		_LOGGER.debug("Create Source: " + self)
+		self.pages_ignored = pages_ignored
 
 	def get_available_chapiters(self, manga_id):
 		_LOGGER.debug("Getting available chapiters for [manga_id=%s]" % manga_id)
@@ -67,7 +67,8 @@ class Source(object):
 			if os.path.exists(chapiter_dir):			
 				try:
 					shutil.rmtree(chapiter_dir)
-				except Exception: 
+				except Exception as error: 
+					_LOGGER.error("Unable to delete working directory [directory=%s, error=%s]" % chapiter_dir, error);
 					pass
 		return cbz
 
@@ -81,13 +82,22 @@ class Source(object):
 		chapiter_url = self._build_url(self.chapiter_page % (manga_id, chapiter))
 		response = Source._request_wrapper.get(chapiter_url, allow_redirects=True)
 		try:
-			pages_url = self._sorted_nicely(set(re.findall(self.page_regex, response.text)))
-			for idx, page_url in enumerate(pages_url):
-				self._download_page(idx + 1 , page_url, target)
+			if self.page_regex is not None:
+				pages_url = self._sorted_nicely(set(re.findall(self.page_regex, response.text)))
+				for idx, page_url in enumerate(pages_url):
+					idx = idx + 1
+					_LOGGER.debug("Current page [idx=%s]" % (idx))
+					if idx not in self.pages_ignored :
+						self._download_page(idx, page_url, target)
+					else:
+						_LOGGER.debug("Page ignored [idx=%s]" % (idx))
+			else:
+				images_url = self._sorted_nicely(set(re.findall(self.image_regex, response.text)))
+				for idx, image_url in enumerate(images_url):
+					self._download_image(idx + 1 , image_url, target)
 		except AttributeError:
-			images_url = self._sorted_nicely(set(re.findall(self.image_regex, response.text)))
-			for idx, image_url in enumerate(images_url):
-				self._download_image(idx + 1 , image_url, target)
+			_LOGGER.error("Error when downloading chapiter images [error=%s]" % error);
+			raise
 
 
 	def _download_page(self, page_idx, page_url, target): 
