@@ -44,7 +44,7 @@ for manga in Mangas.get_all():
 			next_index = calibre_serie.get_next_index(manga.serie_index_increment, manga.serie_sub_index_max)
 			calibre_chapiter_name = calibre_serie.get_chapiter_name(chapiter);
 			calibre_api.add_chapiter_to_serie(calibre_serie, next_index, calibre_chapiter_name, cbz_file)
-
+			calibre_serie.last_index = next_index
 			notifications.append(Notification(manga.serie, chapiter, True))
 		except Exception as error:
 			logger.error("           - Error: %s" % error)
