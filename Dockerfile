@@ -2,8 +2,8 @@
 FROM ubuntu:latest
 
 # Environment variables
-ENV WORK_DIR='/mangas-downloader'
-ENV CONFIG_FILE='$WORK_DIR/config.yml'
+ENV WORK_DIR=/mangas-downloader
+ENV CONFIG_FILE=$WORK_DIR/config.yml
 ENV CRON_PERIOD='0 \*\/6 \* \* \*'
 
 # Create the pseudo log file to point to stdout
