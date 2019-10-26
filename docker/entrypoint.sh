@@ -1,9 +1,10 @@
 #!/bin/bash
+set -e
 
 # Run cron with foreground mode
 echo "Run with "
 echo "  - WORK_DIR=$WORK_DIR"
-echo "  - CRON_PERIOD=$WORK_DIR"
+echo "  - CRON_PERIOD=$CRON_PERIOD"
 echo "  - CONFIG_FILE=$CONFIG_FILE"
 
 # Start the run once job.
