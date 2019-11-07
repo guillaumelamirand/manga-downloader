@@ -95,7 +95,7 @@ class Source(object):
 				images_url = self._sorted_nicely(set(re.findall(self.image_regex, response.text)))
 				for idx, image_url in enumerate(images_url):
 					self._download_image(idx + 1 , image_url, target)
-		except AttributeError:
+		except AttributeError as error:
 			_LOGGER.error("Error when downloading chapiter images [error=%s]" % error);
 			raise
 
