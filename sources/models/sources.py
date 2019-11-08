@@ -9,7 +9,7 @@ import os
 import zipfile
 
 _LOGGER = logging.getLogger(__name__)
-_EXT_REGEX = '.*\.(.*)'
+_EXT_REGEX = '.*\.(.*)$'
 
 class Sources(object):	
 	_items = None
@@ -82,7 +82,7 @@ class Source(object):
 		chapiter_url = self._build_url(self.chapiter_page % (manga_id, chapiter))
 		response = Source._request_wrapper.get(chapiter_url, allow_redirects=True)
 		try:
-			if self.page_regex is not None:
+			try:
 				pages_url = self._sorted_nicely(set(re.findall(self.page_regex, response.text)))
 				for idx, page_url in enumerate(pages_url):
 					idx = idx + 1
@@ -91,40 +91,48 @@ class Source(object):
 						self._download_page(idx, page_url, target)
 					else:
 						_LOGGER.debug("Page ignored [idx=%s]" % (idx))
-			else:
+			except AttributeError as error:
 				images_url = self._sorted_nicely(set(re.findall(self.image_regex, response.text)))
 				for idx, image_url in enumerate(images_url):
 					self._download_image(idx + 1 , image_url, target)
-		except AttributeError as error:
+		except Exception as error:
 			_LOGGER.error("Error when downloading chapiter images [error=%s]" % error);
 			raise
 
 
 	def _download_page(self, page_idx, page_url, target): 
 		_LOGGER.debug("Downloading page [page_idx=%s, page_url=%s, target=%s]" % (page_idx, page_url, target))
-		response = Source._request_wrapper.get(page_url)
+		absolute_page_url = self._build_url(page_url)
+		response = Source._request_wrapper.get(absolute_page_url)
 		image_url = re.search(self.image_regex, response.text).group(1)
 		self._download_image(page_idx, image_url, target)		
 
 	def _download_image(self, page_idx, image_url, target): 
 		_LOGGER.debug("Downloading image [page_idx=%s, image_url=%s, target=%s]" % (page_idx, image_url, target))
 		ext = re.search(_EXT_REGEX, image_url).group(1)
+		absolute_image_url = self._build_url(image_url)
 		with open('%s/%03d.%s' % (target, page_idx, ext), 'wb') as handle:
-			response = Source._request_wrapper.get(image_url, stream=True)
+			response = Source._request_wrapper.get(absolute_image_url, stream=True)
 
 			if not response.ok:
-				_LOGGER.error("Error when downloading page [page_idx=%s, page_url=%s]" % (page_idx, page_url))
-				raise ValueError("Unable to downaload page with [page_idx=%s, page_url=%s, target=%s]" % (page_idx, page_url, target))
+				_LOGGER.error("Error when downloading image [page_idx=%s, absolute_image_url=%s]" % (page_idx, absolute_image_url))
+				raise ValueError("Unable to downaload image with [page_idx=%s, absolute_image_url=%s, target=%s]" % (page_idx, absolute_image_url, target))
 
 			for block in response.iter_content(1024):
 				if not block:
-					_LOGGER.error("Error when downloading page [page_idx=%s, page_url=%s]" % (page_idx, page_url))
+					_LOGGER.error("Error when downloading image [page_idx=%s, absolute_image_url=%s]" % (page_idx, absolute_image_url))
 					break
 
 				handle.write(block)
 
 	def _build_url(self, path): 
-		return self.base_url + path
+		if path.startswith('http'):
+			return path
+		elif path.startswith('/'):
+			return self.base_url + path
+		else:
+			return self.base_url + '/' + path
+		
 
 	def _sorted_nicely(selft, iterable):
 	    """ Sorts the given iterable in the way that is expected.
