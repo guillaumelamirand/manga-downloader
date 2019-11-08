@@ -51,12 +51,12 @@ for manga in Mangas.get_all():
 			notifications.append(Notification(manga.serie, chapiter, False))
 			break
 		finally:
-			logger.debug("Remove cbz file '%s'" % cbz_file)	
-			if os.path.exists(cbz_file):				
-				try:
+			logger.debug("Remove cbz file '%s'" % cbz_file)				
+			try:
+				if os.path.exists(cbz_file):	
 					os.remove(cbz_file)
-				except Exception: 
-					pass
+			except Exception: 
+				pass
 
 #Send notification
 if len(notifications) > 0:
