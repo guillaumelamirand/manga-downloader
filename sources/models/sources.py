@@ -91,7 +91,7 @@ class Source(object):
 						self._download_page(idx, page_url, target)
 					else:
 						_LOGGER.debug("Page ignored [idx=%s]" % (idx))
-			except AttributeError as error:
+			except AttributeError:
 				images_url = self._sorted_nicely(set(re.findall(self.image_regex, response.text)))
 				for idx, image_url in enumerate(images_url):
 					self._download_image(idx + 1 , image_url, target)
@@ -116,7 +116,7 @@ class Source(object):
 
 			if not response.ok:
 				_LOGGER.error("Error when downloading image [page_idx=%s, absolute_image_url=%s]" % (page_idx, absolute_image_url))
-				raise ValueError("Unable to downaload image with [page_idx=%s, absolute_image_url=%s, target=%s]" % (page_idx, absolute_image_url, target))
+				raise ValueError("Unable to download image with [page_idx=%s, absolute_image_url=%s, target=%s]" % (page_idx, absolute_image_url, target))
 
 			for block in response.iter_content(1024):
 				if not block:
