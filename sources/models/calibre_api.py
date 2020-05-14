@@ -9,7 +9,7 @@ import sys
 import subprocess 
 
 _CHAPITER_REG_EX = 'Chapitre ([0-9]+)'
-_CHAPITER_ADDED_REG_EX = 'Added book ids: ([0-9]+)'
+_CHAPITER_ADDED_REG_EX = b'Added book ids: ([0-9]+)'
 _LOGGER = logging.getLogger(__name__)
 
 class CalibreApi(object):
