@@ -1,5 +1,5 @@
 # External import
-import cfscrape
+import cloudscraper
 import requests
 import re
 import tempfile
@@ -17,6 +17,8 @@ class Sources(object):
 	@staticmethod
 	def load_items(config):		
 		Sources._items = {source.id: source for source in config['sources']}
+		for source in Sources._items.values():
+			source.start_session()
 
 	@staticmethod
 	def get_items():
@@ -32,9 +34,7 @@ class Sources(object):
 
 class Source(object):
 
-	_request_wrapper = cfscrape.create_scraper()
-	
-	def __init__(self, id, base_url, manga_page, chapiter_page, chapiter_regex, page_regex, image_regex, pages_ignored): 
+	def __init__(self, id, base_url, manga_page, chapiter_page, chapiter_regex, page_regex, image_regex, pages_ignored, extra_headers): 
 		self.id = id
 		self.base_url = base_url
 		self.manga_page = manga_page
@@ -43,14 +43,23 @@ class Source(object):
 		self.page_regex = page_regex
 		self.image_regex = image_regex
 		self.pages_ignored = pages_ignored
+		self.extra_headers = extra_headers
 
+	def start_session(self):
+		session = requests.session()
+		try:
+			session.headers.update(self.extra_headers)
+		except AttributeError:
+			pass
+		self.scraper = cloudscraper.create_scraper(sess=session)
+	
 	def get_available_chapiters(self, manga_id):
 		_LOGGER.debug("Getting available chapiters for [manga_id=%s]" % manga_id)
 		if not self._exists(manga_id):
 			raise ValueError("No manga found for %s on %s" % (manga_id, self.id))
 
 		manga_url = self._build_url(self.manga_page % manga_id)
-		response = Source._request_wrapper.get(manga_url)
+		response = self.scraper.get(manga_url)
 		return sorted(set(map(int, re.findall(self.chapiter_regex % manga_id, response.text))))
 
 	def build_chapiter(self, manga_id, chapiter):
@@ -74,13 +83,13 @@ class Source(object):
 
 	def _exists(self, manga_id):
 		manga_url = self._build_url(self.manga_page % manga_id);
-		response = Source._request_wrapper.get(manga_url)
+		response = self.scraper.get(manga_url)
 		return response.status_code == requests.codes.ok
 
 	def _download_chapiter(self, manga_id, chapiter, target):
 		_LOGGER.debug("Downloading chapiter [manga_id=%s, chapiter=%s, target=%s]" % (manga_id, chapiter, target))
 		chapiter_url = self._build_url(self.chapiter_page % (manga_id, chapiter))
-		response = Source._request_wrapper.get(chapiter_url, allow_redirects=True)
+		response = self.scraper.get(chapiter_url, allow_redirects=True)
 		try:
 			try:
 				pages_url = self._sorted_nicely(set(re.findall(self.page_regex, response.text)))
@@ -103,7 +112,7 @@ class Source(object):
 	def _download_page(self, page_idx, page_url, target): 
 		_LOGGER.debug("Downloading page [page_idx=%s, page_url=%s, target=%s]" % (page_idx, page_url, target))
 		absolute_page_url = self._build_url(page_url)
-		response = Source._request_wrapper.get(absolute_page_url)
+		response = self.scraper.get(absolute_page_url)
 		image_url = re.search(self.image_regex, response.text).group(1)
 		self._download_image(page_idx, image_url, target)		
 
@@ -112,7 +121,7 @@ class Source(object):
 		ext = re.search(_EXT_REGEX, image_url).group(1)
 		absolute_image_url = self._build_url(image_url)
 		with open('%s/%03d.%s' % (target, page_idx, ext), 'wb') as handle:
-			response = Source._request_wrapper.get(absolute_image_url, stream=True)
+			response = self.scraper.get(absolute_image_url, stream=True)
 
 			if not response.ok:
 				_LOGGER.error("Error when downloading image [page_idx=%s, absolute_image_url=%s]" % (page_idx, absolute_image_url))
