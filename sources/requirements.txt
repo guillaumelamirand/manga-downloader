@@ -4,3 +4,4 @@ ruamel.yaml
 sh
 image_slicer
 cloudscraper
+Pillow

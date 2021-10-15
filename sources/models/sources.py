@@ -7,6 +7,7 @@ import logging
 import shutil
 import os
 import zipfile
+from PIL import Image
 
 _LOGGER = logging.getLogger(__name__)
 _EXT_REGEX = '.*\.(.*)$'
@@ -77,7 +78,7 @@ class Source(object):
 				try:
 					shutil.rmtree(chapiter_dir)
 				except Exception as error: 
-					_LOGGER.error("Unable to delete working directory [directory=%s, error=%s]" % chapiter_dir, error);
+					_LOGGER.error("Unable to delete working directory [directory=%s, error=%s]" % (chapiter_dir, error));
 					pass
 		return cbz
 
@@ -120,7 +121,8 @@ class Source(object):
 		_LOGGER.debug("Downloading image [page_idx=%s, image_url=%s, target=%s]" % (page_idx, image_url, target))
 		ext = re.search(_EXT_REGEX, image_url).group(1)
 		absolute_image_url = self._build_url(image_url)
-		with open('%s/%03d.%s' % (target, page_idx, ext), 'wb') as handle:
+		image_path = '%s/%03d.%s' % (target, page_idx, ext)
+		with open(image_path, 'wb') as handle:
 			response = self.scraper.get(absolute_image_url, stream=True)
 
 			if not response.ok:
@@ -133,6 +135,18 @@ class Source(object):
 					break
 
 				handle.write(block)
+		
+		if ext == "webp":
+			_LOGGER.debug("Converting WEBP image to PNG [page_idx=%s, image_url=%s, path=%s]" % (page_idx, image_url, image_path))
+			with Image.open(image_path) as webp_image:
+				png_image = webp_image.convert('RGB')
+				png_image.save('%s/%03d.%s' % (target, page_idx, 'png'), 'png')
+				try:
+					os.remove(image_path)
+				except Exception as error: 
+					_LOGGER.error("Unable to delete webp image [image_path=%s, error=%s]" % (image_path, error));
+					pass
+
 
 	def _build_url(self, path): 
 		if path.startswith('http'):
