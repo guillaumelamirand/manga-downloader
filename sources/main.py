@@ -28,7 +28,7 @@ for manga in Mangas.get_all():
 		logger.info("      - Last chapiter in Calibre %s" % calibre_serie.last_chapiter )
 
 		available_chapiters = source.get_available_chapiters(manga.id)
-		new_chapiters = [chapiter for chapiter in available_chapiters if chapiter > calibre_serie.last_chapiter]
+		new_chapiters = [chapiter for chapiter in available_chapiters if chapiter not in getattr(manga, 'chapiter_ignored', []) and chapiter > calibre_serie.last_chapiter]
 		if len(new_chapiters) == 0:
 			logger.info("      - No new chapiters available")
 		else:
