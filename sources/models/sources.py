@@ -47,12 +47,16 @@ class Source(object):
 		self.extra_headers = extra_headers
 
 	def start_session(self):
-		session = requests.session()
+		self.scraper = cloudscraper.create_scraper(browser={
+														'browser': 'chrome',
+														'platform': 'windows',
+														'mobile': False
+													})		
 		try:
-			session.headers.update(self.extra_headers)
+			self.scraper.headers.update(self.extra_headers)
 		except AttributeError:
+			_LOGGER.debug("No extra headers to add to the request")
 			pass
-		self.scraper = cloudscraper.create_scraper(sess=session)
 	
 	def get_available_chapiters(self, manga_id):
 		_LOGGER.debug("Getting available chapiters for [manga_id=%s]" % manga_id)
